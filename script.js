@@ -1,155 +1,122 @@
 jQuery(document).ready(function($){
 
-    // **********************************************************************// 
-    // ! FOR MENU EDITOR SECTION
-    // **********************************************************************//
-    
-    //$('.menu_editorbody li.hide-if-no-customize').css('display', 'none');
-    //$('.menu_editorbody li.hide-if-no-customize:first').css('display', 'list-item');
-    
-    $('.menu_editorbody li.hide-if-no-customize').each(function(e) {
-	    
-	    
-	    var parentul  = $( this ).parent().get( 0 ).id;
-	    var thisli 	  = $( this ).get( 0 ).id;
-	    var thislabel = $( "#" + thisli + " label" ).text();
-	    
-	    $('#' + parentul + ' li label:contains("' + thislabel + '")').parent().not(".hide-if-no-customize").css('display', 'none');
-	    
-    });
-    
-    
 
-    $('.menu_editorbody li input.subitem').click(function(e) {
-	    
-	    var parentul = $( this ).parent().parent().get( 0 ).id;
-	    var thisli = $( this ).parent().get( 0 ).id;
-	    var thislabel = $( "#" + thisli + " label" ).text();
+	// Disable Links
+	$('.menu_editorbody #adminmenu a').click(function(e) {
 
-	    
-	    if ( this.checked ) {
-		    
-		    //$('#' + parentul + ' li.hide-if-no-customize > input').prop( 'checked', true );
-		    //$('#' + parentul + ' li.hide-if-no-customize label').addClass('checked-label');
-		    
-		    $('#' + parentul + ' li label:contains("' + thislabel + '")').prev().prop( 'checked', true );
-		    $('#' + parentul + ' li label:contains("' + thislabel + '")').addClass('checked-label');
-		    
-		} else {
-			
-			//$('#' + parentul + ' li.hide-if-no-customize > input').prop( 'checked', false );
-		    //$('#' + parentul + ' li.hide-if-no-customize label').removeClass('checked-label');
-		    
-		    $('#' + parentul + ' li label:contains("' + thislabel + '")').prev().prop( 'checked', false );
-		    $('#' + parentul + ' li label:contains("' + thislabel + '")').removeClass('checked-label');
-			
+		e.preventDefault();
+
+	});
+
+
+	// CHECKBOX WORKS
+	var topLinkHref = "";
+	$('.menu_editorbody #adminmenu li:not(.wp-submenu-head):not(#collapse-menu)').each(function(index) {
+
+		var li = $(this);
+
+		var isSeparator = li.hasClass('wp-menu-separator');
+		var menuType = li.hasClass('menu-top') || isSeparator ? "topitem" : "subitem";
+
+		var link = "";
+		var value = "";
+		var checked = "";
+
+
+		if (isSeparator) {
+
+			var classList = li.attr('class').split(/\s+/);
+			var sepName = classList[classList.length-1];
+
+			value = sepName;
+
+			if ( amr_data_top.indexOf(sepName) > -1 ) {
+
+				checked = "checked";
+
+			}
+
+		} else if (menuType == "topitem") {
+
+			link = li.children('a');
+			topLinkHref = link.attr('href').replace('admin.php?page=', '');
+
+			value = topLinkHref +' | key';
+
+			if ( amr_data_top.indexOf(topLinkHref) > -1 ) {
+
+				checked = "checked";
+
+			}
+
+		} else if (menuType == "subitem") {
+
+			link = li.children('a');
+			var linkHref = link.attr('href').replace('admin.php?page=', '');
+
+			value = topLinkHref +' | ' + linkHref.replace(topLinkHref + '?page=', '');
+
+			if ( amr_data_sub.indexOf(value) > -1 ) {
+
+				checked = "checked";
+
+			}
+
 		}
-		
-    });
 
-        
+
+
+		// Add the input
+		li.prepend('<input type="checkbox" class="'+ menuType +'" name="'+ menuType +'__'+ index +'" value="'+ value + '" '+ checked + '/>');
+
+	});
+
+
+
+	// Check / Uncheck All
 	$('#checkall').click(function(){
-		$('.topmenu-items input').prop( 'checked', true );
-		$('.topmenu-items label').addClass('checked-label');
+		$('.menu_editorbody #adminmenu input').prop( 'checked', true );
 	});
-	
+
 	$('#uncheckall').click(function(){
-		$('.topmenu-items input').prop( 'checked', false );
-		$('.topmenu-items label').removeClass('checked-label');
+		$('.menu_editorbody #adminmenu input').prop( 'checked', false );
 	});
-	
-	
-	// SET COLOR
-	$('input[type="checkbox"]').each(function(e) {
-        if ($(this).is(":checked")) {
-            $( '#' + this.id + ' + label').addClass('checked-label');
-        }
-    });
-    
-	//if ($('li input').is(':checked')) {
-		//$( this.id + ' label').css( "background-color", "rgba(255, 123, 0, 0.44)" );
-	//} else {
-		
-	//}
-	
-	
-	$( "li.topmenu-item input.topitem" ).click(function(e) {
-		if (this.checked) {
-			$('li#top-' + e.target.id + ' + ul li input').prop( 'checked', true );
 
-			// COLOR
-			$('li#top-' + e.target.id + ' input + label').addClass('checked-label');
-			$('li#top-' + e.target.id + ' + ul li input + label').addClass('checked-label');
-    	} else {
-	    	
-	    	// COLOR
-			$('li#top-' + e.target.id + ' input + label').removeClass('checked-label');
-			$('li#top-' + e.target.id + ' + ul li input + label').removeClass('checked-label');
-	    	
-	    	
-	    	if ($('li#top-' + e.target.id + ' + ul li input:checked').length == $('li#top-' + e.target.id + ' + ul li input').length) {
-		    	$('li#top-' + e.target.id + ' + ul li input').prop( 'checked', false );	
-		    }
-    	}
 
-	});
-	
-	
-	$( "li.submenu-item input.subitem" ).click(function(e) {
-		
-		if (this.checked) {
-			// COLOR
-			$('li#sub-' + e.target.id + ' input + label').addClass('checked-label');
-    	} else {
-	    	
-	    	// COLOR
-			$('li#sub-' + e.target.id + ' input + label').removeClass('checked-label');
-    	}
-				
-		var parentID = $( this ).parent().parent().get( 0 ).id;
-		var bigparentID = $( this ).parent().parent().prev().get( 0 ).id;
-			
-		if(!$(this).is(':checked')) {
-			
-			
-			if ($('#' + parentID + ' input').filter(':checked').length > 0) {
-		        //alert('at least one checked');
-		        $('#' + bigparentID + ' input').prop( 'checked', false );
-				
-				// COLOR
-				$('#' + bigparentID + ' input + label').removeClass('checked-label');
-		    } else {
-		        //alert('none of them is checked');
-		        $('#' + bigparentID + ' input').prop( 'checked', false );
-				
-				// COLOR
-				$('#' + bigparentID + ' input + label').removeClass('checked-label');
-		    }
-		    
-		    
-    	}
-    	if ($('#' + parentID + ' input:checked').length == $('#' + parentID + ' input').length) {
-				//alert('everybox is checked');
-				$('#' + bigparentID + ' input').prop( 'checked', true );
-	
-				// COLOR
-				$('#' + bigparentID + ' input + label').addClass('checked-label');
-    	}
 
-	});
-	
-
+	// WARNING
 	$('#menu-editor-form').submit(function () {
-		
-		if ($("#menu-editor-form input:checkbox:checked").length == 0) {
-		    
+
+		if ($("#menu-editor-form input[type='checkbox']:checked").length == 0) {
+
 		    return confirm('All the restrictions are going to be removed for this role. Do you confirm?');
-		    
+
 		}
-		
+
 	});
 
 
+
+	// INPUT CHECKS
+	$('.menu_editorbody #adminmenu input').change(function() {
+
+		var isTop = $(this).hasClass('topitem');
+
+		if ( isTop ) {
+
+			$(this).parent('.wp-has-submenu').find('input').prop('checked', $(this).is(':checked'));
+
+		} else {
+
+			var subInputCount = $(this).parents('.wp-submenu').find('input').length; console.log(subInputCount);
+			var subInputCheckedCount = $(this).parents('.wp-submenu').find('input:checked').length; console.log(subInputCheckedCount);
+			var topInput = $(this).parents('.wp-has-submenu').children('input');
+
+			topInput.prop('checked', (subInputCount == subInputCheckedCount));
+
+		}
+
+	});
 
 
 }); // document ready

@@ -8,7 +8,6 @@
 	- Wordpress Toolbar Editor feature!
 	- Check whole codes make optimizations
 	- Security check
-	- Plugin update checker
-	- Submit to WP repo?
+	- Submit to WP repo
 	- Method descriptions!
 	- Create a documentation

@@ -5,8 +5,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 class AdminMenuRestriction {
 
-	var $menus_for_delete;
-	var $amr_menu_editor_page;
+	var $menus_to_delete;
+	var $menu_editor_page;
 
 
 	function __construct() {
@@ -19,7 +19,7 @@ class AdminMenuRestriction {
 	function adminSideFunctions() {
 
 		// CALL THE EXISTING OPTIONS
-		$this->menus_for_delete = get_option( 'amr_admin_menu', array() );
+		$this->menus_to_delete = get_option( 'amr_admin_menu', array() );
 
 
 		// SETTINGS MENU
@@ -31,11 +31,15 @@ class AdminMenuRestriction {
 
 
 		// CALL THE JAVASCRIPT AND CSS FILES
-		add_action( 'admin_enqueue_scripts', array($this, 'amr_menu_editor_jscripts') );
+		add_action( 'admin_enqueue_scripts', array($this, 'menu_editor_jscripts') );
+
+
+		// APPLY SAVED DATA TO MENU
+		add_action( 'admin_head', array($this, 'apply_data') );
 
 
 		// SAVE THE OPTIONS
-		add_action('admin_init', array($this,'amr_admin_menu_saver') );
+		add_action('admin_init', array($this,'admin_menu_saver') );
 
 
 		// RESTRICT
@@ -54,7 +58,7 @@ class AdminMenuRestriction {
 
 	function settingsMenu() {
 
-		$this->amr_menu_editor_page = add_submenu_page(
+		$this->menu_editor_page = add_submenu_page(
 			'options-general.php',  // admin page slug
 			'Admin Menu Restriction', // page title
 			'Admin Menu Editor', // menu title
@@ -120,15 +124,15 @@ class AdminMenuRestriction {
 
 
 					// Check registered restrictions !!!
-					if ( isset($this->menus_for_delete[$role]) && count($this->menus_for_delete[$role]) > 0 ) {
+					if ( isset($this->menus_to_delete[$role]) && count($this->menus_to_delete[$role]) > 0 ) {
 
-						if ( array_key_exists('sub_allow', $this->menus_for_delete[$role]) || array_key_exists('top_allow', $this->menus_for_delete[$role]) ) {
+						if ( array_key_exists('sub_allow', $this->menus_to_delete[$role]) || array_key_exists('top_allow', $this->menus_to_delete[$role]) ) {
 
 							$allow_restrictions = true;
 							$allowingurl = 'true';
 							$allowing_desc = 'Allowed Menu';
 
-						} elseif ( array_key_exists('sub', $this->menus_for_delete[$role]) || array_key_exists('top', $this->menus_for_delete[$role]) ) {
+						} elseif ( array_key_exists('sub', $this->menus_to_delete[$role]) || array_key_exists('top', $this->menus_to_delete[$role]) ) {
 
 							$disallow_restrictions = true;
 							$allowingurl = 'false';
@@ -143,8 +147,8 @@ class AdminMenuRestriction {
 
 					// Count registered restrictions !!!
 					$count_restriction = 0;
-					if (!isset($this->menus_for_delete[$role]) || !is_array($this->menus_for_delete[$role])) $this->menus_for_delete[$role] = array();
-					foreach ( $this->menus_for_delete[$role] as $menu_type_counter => $menu_pages_counter ) {
+					if (!isset($this->menus_to_delete[$role]) || !is_array($this->menus_to_delete[$role])) $this->menus_to_delete[$role] = array();
+					foreach ( $this->menus_to_delete[$role] as $menu_type_counter => $menu_pages_counter ) {
 
 						foreach ($menu_pages_counter as $restrictions_to_count) {
 
@@ -186,7 +190,7 @@ class AdminMenuRestriction {
 
 
 		// Updated Message
-		if ( isset($_REQUEST['settings-updated']) && $_REQUEST['settings-updated'] )
+		if ( isset($_REQUEST['settings-updated']) )
 			echo '<div class="updated fade"><p><strong>Menu options saved!</strong></p></div>';
 
 
@@ -208,14 +212,18 @@ class AdminMenuRestriction {
 									Choose menu item(s) that you'.(isset($allowing_menu_items) && $allowing_menu_items ? "" : " don't").' want them to access.
 								</p><br/>
 
-								<a id="checkall" style="cursor: pointer;">Check All</a> / <a id="uncheckall" style="cursor: pointer;">Uncheck All</a><br/><br/>';
+								<a id="checkall" style="cursor: pointer;">Check All</a> / <a id="uncheckall" style="cursor: pointer;">Uncheck All</a><br/><br/>
+
+								<ul id="adminmenu" class="">';
 
 
-								require_once( dirname(__file__).'/menu_editor_settings.php' );
-								$this->_wp_menu_edit_output( $menu, $submenu );
+									require_once( dirname(__file__).'/menu_editor_settings.php' );
+									_wp_menu_output( $filtred_menu, $filtred_submenu );
 
 
-		echo '					<input type="hidden" name="action" value="amr_menu_editor_save" />
+		echo '					</ul>
+
+								<input type="hidden" name="action" value="menu_editor_save" />
 	                            <p class="submit">
 									<input type="submit" name="Submit" class="button-primary" value="Save Changes">
 								</p>
@@ -234,335 +242,79 @@ class AdminMenuRestriction {
 
 	}
 
-	function _wp_menu_edit_output( $menu, $submenu, $submenu_as_parent = true ) {
-		global $self, $parent_file, $submenu_file, $plugin_page, $typenow, $_REQUEST;
-
-
-		$options = get_option( 'amr_admin_menu', array() );
-
-		if ( $_REQUEST['allowing'] == "true" ) { $allowing_menu_items = true; }
-
-		if (isset($allowing_menu_items) && $allowing_menu_items) {
-			$allow_ext = "_allow";
-		} else {
-			$allow_ext = "";
-		}
-
-
-		echo '<ul class="topmenu-items" id="adminmenu">';
-			$first = true;
-			$amr_item_no = 0;
-			// 0 = menu_title, 1 = capability, 2 = menu_slug, 3 = page_title, 4 = classes, 5 = hookname, 6 = icon_url
-			foreach ( $menu as $key => $item ) {
-				$admin_is_parent = false;
-				$class = array();
-				$aria_attributes = '';
-				$aria_hidden = '';
-				$is_separator = false;
-
-				if ( $first ) {
-					$class[] = 'wp-first-item';
-					$first = false;
-				}
-
-				$submenu_items = array();
-				if ( ! empty( $submenu[$item[2]] ) ) {
-					$class[] = 'wp-has-submenu';
-					$submenu_items = $submenu[$item[2]];
-				}
-
-				if ( ( $parent_file && $item[2] == $parent_file ) || ( empty($typenow) && $self == $item[2] ) ) {
-					$class[] = ! empty( $submenu_items ) ? 'wp-not-current-submenu' : 'current';
-				} else {
-					$class[] = 'wp-not-current-submenu';
-					if ( ! empty( $submenu_items ) )
-						$aria_attributes .= 'aria-haspopup="true"';
-				}
-
-				if ( ! empty( $item[4] ) )
-					$class[] = esc_attr( $item[4] );
-
-				$class = $class ? ' class="topmenu-item ' . join( ' ', $class ) . '"' : '';
-				$id = ! empty( $item[5] ) ? ' id="top-'.$amr_item_no.'"' : ' id="top-'.$amr_item_no.'"';
-				$img = $img_style = '';
-				$img_class = ' dashicons-before';
-
-				if ( false !== strpos( $class, 'wp-menu-separator' ) ) {
-					$is_separator = true;
-				}
-
-				/*
-				 * If the string 'none' (previously 'div') is passed instead of an URL, don't output
-				 * the default menu image so an icon can be added to div.wp-menu-image as background
-				 * with CSS. Dashicons and base64-encoded data:image/svg_xml URIs are also handled
-				 * as special cases.
-				 */
-				if ( ! empty( $item[6] ) ) {
-					$img = '<img src="' . $item[6] . '" alt="" />';
-
-					if ( 'none' === $item[6] || 'div' === $item[6] ) {
-						$img = '<br />';
-					} elseif ( 0 === strpos( $item[6], 'data:image/svg+xml;base64,' ) ) {
-						$img = '<br />';
-						$img_style = ' style="background-image:url(\'' . esc_attr( $item[6] ) . '\')"';
-						$img_class = ' svg';
-					} elseif ( 0 === strpos( $item[6], 'dashicons-' ) ) {
-						$img = '<br />';
-						$img_class = ' dashicons-before ' . sanitize_html_class( $item[6] );
-					}
-				}
-				$arrow = '<div class="wp-menu-arrow"><div></div></div>';
-
-				$title = wptexturize( $item[0] );
-
-				// hide separators from screen readers
-				if ( $is_separator ) {
-					$aria_hidden = ' aria-hidden="true"';
-				}
-
-
-		/*		$submenu_items = array_values( $submenu_items );  // Re-index.
-				if (!has_allowed_submenu($item[1], $submenu_items, $_REQUEST['role'] )) continue;*/
-
-
-		// Remove any duplicated separators
-		if ( $is_separator ) {
-			$separator_found = false;
-			//foreach ( $menu as $id => $data ) {
-				if ( 0 == strcmp('wp-menu-separator', $item[4] ) ) {
-					if (false == $separator_found) {
-						$separator_found = 'true';
-					} else {
-						//unset($menu[$id]);
-						$separator_found = 'false';
-					}
-				} else {
-					$separator_found = 'false2';
-					continue;
-				}
-			//}
-			//unset($id, $data);
-		}
-
-
-				echo "\n\t<li$class$id$aria_hidden><input type='checkbox' class='topitem' id='".$amr_item_no."' name='topitem__".$amr_item_no."' value='".$item[2]." | ".$key."' ".$this->amr_checkifexist( "top".$allow_ext, $item[2], $key, $options ).">";
-		// NEW USAGE: $this->amr_checkifexist( $type = "top", $pg = "users.php", $menuid = 70, $datam );
-				$amr_item_no_inherit = $amr_item_no;
-				$amr_item_no++;
-
-				if ( $is_separator ) {
-					echo '<label for="'.$amr_item_no_inherit.'">Seperator</label>'; // echo "<pre>"; print_r($item); echo "</pre>";
-				} elseif ( $submenu_as_parent && ! empty( $submenu_items ) ) {
-					$submenu_items = array_values( $submenu_items );  // Re-index.
-					$menu_hook = get_plugin_page_hook( $submenu_items[0][2], $item[2] );
-					$menu_file = $submenu_items[0][2];
-					if ( false !== ( $pos = strpos( $menu_file, '?' ) ) )
-						$menu_file = substr( $menu_file, 0, $pos );
-
-					if ( ! empty( $menu_hook ) || ( ( 'index.php' != $submenu_items[0][2] ) && file_exists( WP_PLUGIN_DIR . "/$menu_file" ) && ! file_exists( ABSPATH . "/wp-admin/$menu_file" ) ) ) {
-						$admin_is_parent = true;
-						echo "<label for='$amr_item_no_inherit'$class $aria_attributes>$arrow<div class='wp-menu-image$img_class'$img_style>$img</div><div class='wp-menu-name'>$title</div></label>";/*echo "<pre>"; has_allowed_submenu($submenu_items, $_REQUEST['role'] ); /*print_r($submenu_items); echo "</pre>";*/
-					} else {
-						echo "\n\t<label for='$amr_item_no_inherit'$class $aria_attributes>$arrow<div class='wp-menu-image$img_class'$img_style>$img</div><div class='wp-menu-name'>$title</div></label>";
-					}
-				} elseif ( ! empty( $item[2] ) && $this->role_has_capability( $_REQUEST['role'], $item[1] ) ) {
-					$menu_hook = get_plugin_page_hook( $item[2], 'admin.php' );
-					$menu_file = $item[2];
-					if ( false !== ( $pos = strpos( $menu_file, '?' ) ) )
-						$menu_file = substr( $menu_file, 0, $pos );
-					if ( ! empty( $menu_hook ) || ( ( 'index.php' != $item[2] ) && file_exists( WP_PLUGIN_DIR . "/$menu_file" ) && ! file_exists( ABSPATH . "/wp-admin/$menu_file" ) ) ) {
-						$admin_is_parent = true;
-						echo "\n\t<label for='$amr_item_no_inherit'$class $aria_attributes>$arrow<div class='wp-menu-image$img_class'$img_style>$img</div><div class='wp-menu-name'>{$item[0]}</div></label>";
-					} else {
-						echo "\n\t<label for='$amr_item_no_inherit'$class $aria_attributes>$arrow<div class='wp-menu-image$img_class'$img_style>$img</div><div class='wp-menu-name'>{$item[0]}</div></label>";
-					}
-				}
-				echo "</li>";
-				if ( ! empty( $submenu_items ) ) {
-					echo "\n\t<ul id='sub-".$amr_item_no_inherit."' class='submenu-items wp-submenu wp-submenu-wrap' style='padding: 0; z-index: 0; position: relative; top: auto; left: auto; right: auto; bottom: auto;'>";
-					echo "<li class='wp-submenu-head'>{$item[0]}</li>";
-
-					$first = true;
-
-					// 0 = menu_title, 1 = capability, 2 = menu_slug, 3 = page_title, 4 = classes
-					foreach ( $submenu[$item[2]] as $sub_key => $sub_item ) {
-						if ( ! $this->role_has_capability( $_REQUEST['role'], $sub_item[1] ) )
-							continue;
-
-						$class = array();
-						if ( $first ) {
-							$class[] = 'wp-first-item';
-							$first = false;
-						}
-
-						$menu_file = $item[2];
-
-						if ( false !== ( $pos = strpos( $menu_file, '?' ) ) )
-							$menu_file = substr( $menu_file, 0, $pos );
-
-						// Handle current for post_type=post|page|foo pages, which won't match $self.
-						$self_type = ! empty( $typenow ) ? $self . '?post_type=' . $typenow : 'nothing';
-
-						if ( isset( $submenu_file ) ) {
-							if ( $submenu_file == $sub_item[2] )
-								$class[] = 'current';
-						// If plugin_page is set the parent must either match the current page or not physically exist.
-						// This allows plugin pages with the same hook to exist under different parents.
-						} elseif (
-							( ! isset( $plugin_page ) && $self == $sub_item[2] ) ||
-							( isset( $plugin_page ) && $plugin_page == $sub_item[2] && ( $item[2] == $self_type || $item[2] == $self || file_exists($menu_file) === false ) )
-						) {
-							$class[] = 'current';
-						}
-
-						if ( ! empty( $sub_item[4] ) ) {
-							$class[] = esc_attr( $sub_item[4] );
-						}
-
-						$class = $class ? ' class="submenu-item ' . join( ' ', $class ) . '"' : ' class="submenu-item"';
-						$id = " id='sub-".$amr_item_no."'";
-
-						$menu_hook = get_plugin_page_hook($sub_item[2], $item[2]);
-						$sub_file = $sub_item[2];
-						if ( false !== ( $pos = strpos( $sub_file, '?' ) ) )
-							$sub_file = substr($sub_file, 0, $pos);
-
-						$title = wptexturize($sub_item[0]);
-						$sub_item_checkbox = "<input type='checkbox' class='subitem' id='".$amr_item_no."' name='subitem__".$amr_item_no."' value='".$item[2]." | ".$sub_item[2]."' ".$this->amr_checkifexist( "sub".$allow_ext, $item[2], $sub_item[2], $options ).">";
-
-						if ( ! empty( $menu_hook ) || ( ( 'index.php' != $sub_item[2] ) && file_exists( WP_PLUGIN_DIR . "/$sub_file" ) && ! file_exists( ABSPATH . "/wp-admin/$sub_file" ) ) ) {
-							// If admin.php is the current page or if the parent exists as a file in the plugins or admin dir
-							if ( ( ! $admin_is_parent && file_exists( WP_PLUGIN_DIR . "/$menu_file" ) && ! is_dir( WP_PLUGIN_DIR . "/{$item[2]}" ) ) || file_exists( $menu_file ) )
-								$sub_item_url = add_query_arg( array( 'page' => $sub_item[2] ), $item[2] );
-							else
-								$sub_item_url = add_query_arg( array( 'page' => $sub_item[2] ), 'admin.php' );
-
-							$sub_item_url = esc_url( $sub_item_url );
-
-							echo "<li$class$id>$sub_item_checkbox<label for='$amr_item_no'$class>$title</label></li>";
-						} else {
-							echo "<li$class$id>$sub_item_checkbox<label for='$amr_item_no'$class>$title</label></li>";
-						}
-						$amr_item_no++;
-					}
-					//print_r($submenu[$item[2]]);
-					echo "</ul>";
-				}
-				//echo "</li>";
-			}
-
-			//echo '<li id="collapse-menu" class="hide-if-no-js"><div id="collapse-button"><div></div></div>';
-			//echo '<span>' . esc_html__( 'Collapse menu' ) . '</span>';
-			//echo '</li>';
-		echo '</li></ul>';
-
-		//echo "<pre>"; print_r($options); echo "</pre>";
-	}
-
-	function role_has_capability($target_role, $has_cap) {
-		global $wp_roles;
-
-		$the_role = $wp_roles->roles[$target_role]['capabilities'];
-
-
-		if ( isset($the_role[$has_cap]) && $the_role[$has_cap] == 1 ) {
-			return true;
-		} else {
-			return false;
-		}
-
-	}
-
-
-	// CHECKS THE BOXES IF APPLIED BEFORE
-	function amr_checkifexist($type, $page, $menuid, $datam ) {
-		global $_GET;
-
-			$pulldatatop = isset($datam[ $_GET['role'] ][$type]) ? $datam[ $_GET['role'] ][$type] : "";
-
-		if (!is_array($pulldatatop)) $pulldatatop = array();
-
-	$result = "";
-		foreach ($pulldatatop as $pagename => $idarray ) {
-
-			if ( isset($type) && $type == "top_allow" ) {
-
-				if ( $pagename == $page || $pagename == $this->filterMenuUrl($page) ) {
-
-					$result .= "checked byallow";
-					break;
-
-				}
-
-			} elseif ( isset($type) && $type == "sub_allow" ) {
-
-				foreach ($idarray as $itemid => $menuid_data) {
-
-					if ( $menuid_data == $menuid || $menuid_data == $this->filterMenuUrl($menuid) ) {
-						$result .= "checked byallow";
-						break;
-					}elseif ( substr($menuid_data, 0, 13) == "customize.php" && substr($menuid_data, 0, 13) == substr($menuid, 0, 13) ) {
-						$result .= "checked byallow";
-						break;
-					}
-
-				}
-
-			} elseif ( isset($type) && $type == "top" ) {
-
-				if ( $pagename == $page || $pagename == $this->filterMenuUrl($page) ) {
-
-					$result .= "checked";
-					break;
-
-				}
-
-			} elseif ( isset($type) && $type == "sub" ) {
-
-				foreach ($idarray as $itemid => $menuid_data) {
-
-					if ( $menuid_data == $menuid || $menuid_data == $this->filterMenuUrl($menuid) ) {
-						$result .= "checked";
-						break;
-					}elseif ( substr($menuid_data, 0, 13) == "customize.php" && substr($menuid_data, 0, 13) == substr($menuid, 0, 13) ) {
-						$result .= "checked";
-						break;
-					}
-
-				}
-
-			}
-
-		}
-	return $result;
-
-	}
-
 
 	// STYLE AND SCRIPT
-	function amr_menu_editor_jscripts($hook) {
+	function menu_editor_jscripts($hook) {
 
-		if( $hook != $this->amr_menu_editor_page ) { return; }
+		if( $hook != $this->menu_editor_page ) { return; }
 
-			wp_enqueue_script( 'amr-menu-editor-jscripts', plugin_dir_url( __FILE__ ) .'script.js', array(), '1.0.0', true);
+			wp_enqueue_script( 'amr-menu-editor-jscripts', plugin_dir_url( __FILE__ ) .'script.js', array(), '1.0.1', true);
 
-			wp_register_style( 'amr-menu-editor-styles', plugin_dir_url( __FILE__ ) .'style.css', false, '1.0.0' );
+			wp_register_style( 'amr-menu-editor-styles', plugin_dir_url( __FILE__ ) .'style.css', false, '1.0.1' );
 			wp_enqueue_style( 'amr-menu-editor-styles' );
 	}
 
 
+	function apply_data($hook) {
+
+		$screen = get_current_screen()->base;
+		if( $screen != $this->menu_editor_page ) { return; }
+
+		$allowing = isset($_GET['allowing']) && $_GET['allowing'] == "true" ? true : false;
+
+	?>
+	<script>
+		var amr_data_top =
+		[<?php
+		$data = $this->menus_to_delete[$_REQUEST['role']]['top'.($allowing ? "_allow" : "")];
+		if ( isset($data) ) {
+
+			$dataset = "";
+			foreach ($data as $top_page => $value) {
+
+				$dataset .= "'$top_page',";
+
+			}
+			echo trim($dataset, ",");
+
+		}
+
+		?>];
+
+		var amr_data_sub =
+		[<?php
+		$data = $this->menus_to_delete[$_REQUEST['role']]['sub'.($allowing ? "_allow" : "")];
+		if ( isset($data) ) {
+
+			$dataset = "";
+			foreach ($data as $top_page => $sub_pages) {
+				foreach ($sub_pages as $page_key => $sub_page) {
+
+					$dataset .= "'$top_page | $sub_page',";
+
+				}
+			}
+			echo trim($dataset, ",");
+
+		}
+		?>];
+	</script>
+	<?php
+
+	}
+
+
 	// SAVE THE OPTIONS
-	function amr_admin_menu_saver() {
+	function admin_menu_saver() {
 		global $_REQUEST;
 
 		if ( isset($_REQUEST['allowing']) && $_REQUEST['allowing'] == "true" ) { $allowlink = "&allowing=true"; } else { $allowlink = "&allowing=false"; }
 
 
-		if ( isset($_REQUEST['action']) && $_REQUEST['action'] == "amr_menu_editor_save" ) {
+		if ( isset($_REQUEST['action']) && $_REQUEST['action'] == "menu_editor_save" ) {
 
-				$current_options = get_option( 'amr_admin_menu', array() );
-
-				$datatata = $this->regular_menu_option( $_REQUEST );
+			$current_options = get_option( 'amr_admin_menu', array() );
+			$datatata = $this->regular_menu_option( $_REQUEST );
 
 
 			if( $datatata[ $_REQUEST['role'] ] == "" ) {
@@ -570,13 +322,13 @@ class AdminMenuRestriction {
 			}
 
 
-				$new_admin_menu_data = array_merge($current_options, $datatata);
-				update_option( 'amr_admin_menu', $new_admin_menu_data );
-				$this->amr_forward_page("options-general.php?page=admin-menu-restriction&role=".urlencode($_REQUEST['role']).$allowlink."&settings-updated");
+			$new_admin_menu_data = array_merge($current_options, $datatata);
+			update_option( 'amr_admin_menu', $new_admin_menu_data );
+			$this->forward_page("options-general.php?page=admin-menu-restriction&role=".urlencode($_REQUEST['role']).$allowlink."&settings-updated");
 
 
-				//echo '<pre>'; print_r( $this->regular_menu_option( $_REQUEST ) ); echo '</pre><br/><br/>';
-				//echo '<pre>'; print_r( $data['amr_customer']['top'] ); echo '</pre><br/><br/>';
+			//echo '<pre>'; print_r( $this->regular_menu_option( $_REQUEST ) ); echo '</pre><br/><br/>';
+			//echo '<pre>'; print_r( $data['amr_customer']['top'] ); echo '</pre><br/><br/>';
 
 
 		}
@@ -607,9 +359,6 @@ class AdminMenuRestriction {
 		);
 
 		$regular_menu_filter = array();
-
-
-		//<input type='checkbox' class='subitem' id='".$amr_item_no."' name='subitem__".$amr_item_no."' value='".$item[2]." | ".$sub_key." | ".$sub_item[2]."' ".amr_checkifexist( "sub", $item[2], $sub_key, $options ).">";
 
 
 		foreach ($bring as $key => $value) {
@@ -735,7 +484,7 @@ class AdminMenuRestriction {
 
 
 	// PAGE FORWARDER
-	function amr_forward_page($direction) {
+	function forward_page($direction) {
 		if (!headers_sent()) {
 			wp_redirect($direction);
 			exit;
@@ -886,9 +635,8 @@ class AdminMenuRestriction {
 
 
 
-
 		// RUN THE SCRIPT
-		foreach ($this->menus_for_delete as $user => $menu_types) {
+		foreach ($this->menus_to_delete as $user => $menu_types) {
 
 
 			if ( current_user_can($user) && !current_user_can('administrator') ) {
@@ -999,6 +747,7 @@ class AdminMenuRestriction {
 
 
 		}
+
 
 	}
 

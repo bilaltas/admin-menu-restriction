@@ -1,11 +1,11 @@
 <?php
 /*
 Plugin Name: Admin Menu Restriction
-Plugin URI: http://bilaltas.net
+Plugin URI: https://www.bilaltas.net
 Description: The best and easiest plugin to restrict admin menu items.
 Author: Bilal TAS
-Author URI: http://bilaltas.net
-Version: 0.0.1
+Author URI: https://www.bilaltas.net
+Version: 1.0.0
 */
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );

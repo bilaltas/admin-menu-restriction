@@ -29,7 +29,7 @@
     margin: 0;
     opacity: 0;
     background-color: #ff7b00;
-    text-indent: -100px;
+    text-indent: -9999px;
     z-index: 1;
 }
 

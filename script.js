@@ -39,7 +39,7 @@ jQuery(document).ready(function($){
 		} else if (menuType == "topitem") {
 
 			link = li.children('a');
-			topLinkHref = link.attr('href').replace('admin.php?page=', '');
+			topLinkHref = link.attr('href').replace('admin.php?page=', '').replace(/\&/g, '&amp;');
 
 			value = topLinkHref +' | key';
 
@@ -51,10 +51,10 @@ jQuery(document).ready(function($){
 
 		} else if (menuType == "subitem") {
 
-			link = li.children('a');
-			var linkHref = link.attr('href').replace('admin.php?page=', '');
+			link = li.children('a'); console.log(link.attr('href'));
+			var linkHref = link.attr('href').replace('admin.php?page=', '').replace(topLinkHref + '?page=', '').replace(topLinkHref + '&page=', '').replace(/\&/g, '&amp;');
 
-			value = topLinkHref +' | ' + linkHref.replace(topLinkHref + '?page=', '');
+			value = topLinkHref +' | ' + linkHref;
 
 			if ( amr_data_sub.indexOf(value) > -1 ) {
 

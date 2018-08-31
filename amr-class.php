@@ -212,16 +212,28 @@ class AdminMenuRestriction {
 									Choose menu item(s) that you'.(isset($allowing_menu_items) && $allowing_menu_items ? "" : " don't").' want them to access.
 								</p><br/>
 
-								<a id="checkall" style="cursor: pointer;">Check All</a> / <a id="uncheckall" style="cursor: pointer;">Uncheck All</a><br/><br/>
+								<a id="checkall" style="cursor: pointer;">Select All</a> / <a id="uncheckall" style="cursor: pointer;">Unselect All</a><br/><br/>
 
 								<ul id="adminmenu" class="">';
 
 
 									require_once( dirname(__file__).'/menu_editor_settings.php' );
-									_wp_menu_output( $filtred_menu, $filtred_submenu );
+									_wp_menu_output( $filtred_menu, $filtred_submenu, false );
 
 
 		echo '					</ul>
+
+
+								<div class="debug" style="display: none;">
+									<h1>DATA</h1>
+									<pre>'.print_r($this->menus_to_delete, true).'</pre>
+
+									<h1>TOP MENU</h1>
+									<pre>'.print_r($filtred_menu, true).'</pre>
+
+									<h1>SUB MENU</h1>
+									<pre>'.print_r($filtred_submenu, true).'</pre>
+								</div>
 
 								<input type="hidden" name="action" value="menu_editor_save" />
 	                            <p class="submit">
@@ -420,9 +432,10 @@ class AdminMenuRestriction {
 
 
 	// FIND THE RIGHT SUB KEY
-	function find_sub_key($menu_page, $menu_item, $allowthis = false) {
-		global $submenu, $allowed_subs;
+	function find_sub_key($menu_page, $menu_item) {
+		global $submenu;
 
+		//error_log("FIND SUB KEY: ".$menu_page." -> ".$menu_item);
 
 		if ( !is_array($submenu[ $menu_page ]) ) $submenu[ $menu_page ] = array();
 
@@ -439,20 +452,14 @@ class AdminMenuRestriction {
 			// CUSTOMIZE.PHP EXCEPTION
 			if ( substr($sub_menu_details_on_current[2], 0, 13) == "customize.php" && substr($menu_item, 0, 13)  == "customize.php" ) {
 
-				if ($allowthis == true ) {
-
-					$allowed_subs[] = 'themes.php'.$sub_key_on_current.$menu_item;
-
-				} else {
-
-					unset($submenu[ 'themes.php' ][ $sub_key_on_current ]);
-
-				}
+				$sub_menu_key = $sub_key_on_current;
 
 			}
 
 
 		}
+
+		//error_log("SUB KEY FOUND: ".$sub_menu_key);
 
 
 		return $sub_menu_key;
@@ -510,14 +517,50 @@ class AdminMenuRestriction {
 
 			$sub_menu_key = $this->find_sub_key($menu_page, $menu_item);
 
+
 			// CHANGE THE PERMISSION
 			$submenu[ $menu_page ][ $sub_menu_key ][1] = 'administrator';
 
-			// REMOVE THE PAGE
+
+			// REMOVE THE PAGE !!!
 			if ( !remove_submenu_page( $menu_page, $menu_item ) ) unset( $submenu[ $menu_page ][ $sub_menu_key ] );
+
 
 			// BLOCK THE PAGE ACCESS
 			$this->block_page_access($menu_item, "sub", $dontdo, $itemunique);
+
+			error_log( 'Deleted Sub: '.print_r($menu_page." - ".$sub_menu_key." - ".$menu_item, true) );
+
+		}
+
+
+	}
+
+
+	// SUB PAGE BLOCK NEW
+	function block_subpage_new( $menu_page, $sub_menu_key, $menu_item, $dontdo = array() ) {
+		global $_SERVER, $submenu;
+
+		$itemunique = $menu_page.$sub_menu_key.$menu_item;
+
+
+		if ( !in_array($itemunique, $dontdo) && !in_array($this->filterMenuUrl($itemunique), $dontdo) ) {
+
+			$sub_menu_key = $this->find_sub_key($menu_page, $menu_item);
+
+
+			// CHANGE THE PERMISSION
+			$submenu[ $menu_page ][ $sub_menu_key ][1] = 'administrator';
+
+
+			// REMOVE THE PAGE !!!
+			if ( !remove_submenu_page( $menu_page, $menu_item ) ) unset( $submenu[ $menu_page ][ $sub_menu_key ] );
+
+
+			// BLOCK THE PAGE ACCESS
+			$this->block_page_access($menu_item, "sub", $dontdo, $itemunique);
+
+			error_log( 'Deleted Sub: '.print_r($menu_page." - ".$sub_menu_key." - ".$menu_item, true) );
 
 		}
 
@@ -537,10 +580,12 @@ class AdminMenuRestriction {
 			$menu[ $top_menu_key ][1] = 'administrator';
 
 			// REMOVE THE PAGE
-			if ( !remove_menu_page($menu_page) ) unset( $menu[ $top_menu_key ] );
+			//if ( !remove_menu_page($menu_page) ) unset( $menu[ $top_menu_key ] );
 
 			// BLOCK THE PAGE ACCESS
 			$this->block_page_access($menu_page, "top");
+
+			error_log( 'Deleted Top: '.print_r($menu_page, true) );
 
 		}
 
@@ -657,15 +702,30 @@ class AdminMenuRestriction {
 						foreach ($menu_pages as $menu_page => $menu_items) {
 							foreach ($menu_items as $menu_item) {
 
+
 								// FIND THE SUBMENU KEY
-								$sub_menu_key = $this->find_sub_key($menu_page, $menu_item, true);
+								$sub_menu_key = $this->find_sub_key($menu_page, $menu_item);
+
+								// Customize.php exception
+								if ( substr($menu_item, 0, 13) == "customize.php" ) $menu_item = "customize.php";
 
 								// ADD TO ALLOWED ITEMS
 								$allowed_subs[] = $menu_page.$sub_menu_key.$menu_item;
 								$allowed_tops[] = $menu_page;
 
+								// Users.php exception
+								if ( $menu_page == "users.php" && $menu_item == "profile.php" ) {
+									$allowed_subs[] = "profile.php".$sub_menu_key.$menu_item;
+									$allowed_tops[] = "profile.php";
+								}
+
+								error_log( 'Allowed Sub: '.print_r($menu_page." - ".$sub_menu_key." - ".$menu_item, true) );
+								error_log( 'Allowed Top: '.print_r($menu_page, true) );
+
 							}
 						}
+
+						//error_log( 'Allowed Subs: '.print_r($allowed_subs, true) );
 
 
 					} elseif ( $menu_type == "top_allow" ) { // TOP ALLOWING
@@ -678,6 +738,8 @@ class AdminMenuRestriction {
 								$allowed_tops[] = $menu_page;
 								$allowed_subs[] = $menu_page."0".$menu_page;
 
+								error_log( 'Allowed Top: '.print_r($menu_page, true) );
+
 							}
 						}
 
@@ -688,8 +750,17 @@ class AdminMenuRestriction {
 						foreach ($menu_pages as $menu_page => $menu_items) {
 							foreach ($menu_items as $menu_item) {
 
+								// FIND THE SUBMENU KEY
+								$sub_menu_key = $this->find_sub_key($menu_page, $menu_item);
+
 								// DO SUB DELETION
 								$this->block_subpage( $menu_page, $sub_menu_key, $menu_item );
+
+								// Users.php exception
+								if ( $menu_page == "users.php" && $menu_item == "profile.php" ) {
+									$this->block_subpage( "profile.php", $sub_menu_key, $menu_item );
+									$this->block_toppage( "profile.php" );
+								}
 
 							}
 						}
@@ -711,18 +782,26 @@ class AdminMenuRestriction {
 					}
 
 					if (
-						(( array_key_exists('sub_allow', $menu_types) || array_key_exists('top_allow', $menu_types) ) && ($i == $len - 1)) ||
-						( !array_key_exists('sub_allow', $menu_types) && !array_key_exists('top_allow', $menu_types) && !array_key_exists('top', $menu_types) && !array_key_exists('sub', $menu_types) )
+						(
+							( array_key_exists('sub_allow', $menu_types) || array_key_exists('top_allow', $menu_types) ) && ($i == $len - 1)) ||
+							(
+								!array_key_exists('sub_allow', $menu_types) && !array_key_exists('top_allow', $menu_types) &&
+								!array_key_exists('top', $menu_types) && !array_key_exists('sub', $menu_types)
+							)
 					) {
 
 
 						// SUB ALLOW ====================================================================================
-						foreach ($submenu as $page_menu => $items_menu ) {
-							foreach ($items_menu as $item_number_menu => $item_details_menu) {
+						foreach ($submenu as $menu_page => $sub_menus ) {
+							foreach ($sub_menus as $menu_id => $menu_details) {
 
-								$item_details_menu[2] = isset($item_details_menu[2]) ? $item_details_menu[2] : null;
+								$menu_details[2] = isset($menu_details[2]) ? $menu_details[2] : null;
 
-								$this->block_subpage( $page_menu, $item_number_menu, $item_details_menu[2], $allowed_subs );
+								// Customize.php exception
+								if ( substr($menu_details[2], 0, 13) == "customize.php" ) $menu_details[2] = "customize.php";
+
+
+								$this->block_subpage( $menu_page, $menu_id, $menu_details[2], $allowed_subs );
 
 							}
 						}

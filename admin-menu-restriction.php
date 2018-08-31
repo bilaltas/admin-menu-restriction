@@ -1,13 +1,13 @@
 <?php
 /*
 Plugin Name: Admin Menu Restriction
-Plugin URI: https://www.bilaltas.net
+Plugin URI: https://www.bilaltas.net/plugins/admin-menu-restriction
 Description: The best and easiest plugin to restrict admin menu items.
 Author: Bilal TAS
 Author URI: https://www.bilaltas.net
 License: MIT
 License URI: https://opensource.org/licenses/MIT
-Version: 1.0.1
+Version: 1.0.2
 
 Copyright (c) 2018 Admin Menu Restriction
 

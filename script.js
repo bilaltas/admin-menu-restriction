@@ -15,6 +15,9 @@ jQuery(document).ready(function($){
 
 		var li = $(this);
 
+		// Skip if it has empty link
+		//if ( li.children('a').text() == "" ) return true;
+
 		var isSeparator = li.hasClass('wp-menu-separator');
 		var menuType = li.hasClass('menu-top') || isSeparator ? "topitem" : "subitem";
 
@@ -97,6 +100,7 @@ jQuery(document).ready(function($){
 
 
 
+/*
 	// INPUT CHECKS
 	$('.menu_editorbody #adminmenu input').change(function() {
 
@@ -117,6 +121,7 @@ jQuery(document).ready(function($){
 		}
 
 	});
+*/
 
 
 }); // document ready

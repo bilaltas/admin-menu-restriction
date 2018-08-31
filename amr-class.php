@@ -435,7 +435,7 @@ class AdminMenuRestriction {
 	function find_sub_key($menu_page, $menu_item) {
 		global $submenu;
 
-		//error_log("FIND SUB KEY: ".$menu_page." -> ".$menu_item);
+		////error_log("FIND SUB KEY: ".$menu_page." -> ".$menu_item);
 
 		if ( !is_array($submenu[ $menu_page ]) ) $submenu[ $menu_page ] = array();
 
@@ -459,7 +459,7 @@ class AdminMenuRestriction {
 
 		}
 
-		//error_log("SUB KEY FOUND: ".$sub_menu_key);
+		////error_log("SUB KEY FOUND: ".$sub_menu_key);
 
 
 		return $sub_menu_key;
@@ -527,40 +527,9 @@ class AdminMenuRestriction {
 
 
 			// BLOCK THE PAGE ACCESS
-			$this->block_page_access($menu_item, "sub", $dontdo, $itemunique);
+			//$this->block_page_access($menu_item, "sub", $dontdo, $itemunique);
 
-			error_log( 'Deleted Sub: '.print_r($menu_page." - ".$sub_menu_key." - ".$menu_item, true) );
-
-		}
-
-
-	}
-
-
-	// SUB PAGE BLOCK NEW
-	function block_subpage_new( $menu_page, $sub_menu_key, $menu_item, $dontdo = array() ) {
-		global $_SERVER, $submenu;
-
-		$itemunique = $menu_page.$sub_menu_key.$menu_item;
-
-
-		if ( !in_array($itemunique, $dontdo) && !in_array($this->filterMenuUrl($itemunique), $dontdo) ) {
-
-			$sub_menu_key = $this->find_sub_key($menu_page, $menu_item);
-
-
-			// CHANGE THE PERMISSION
-			$submenu[ $menu_page ][ $sub_menu_key ][1] = 'administrator';
-
-
-			// REMOVE THE PAGE !!!
-			if ( !remove_submenu_page( $menu_page, $menu_item ) ) unset( $submenu[ $menu_page ][ $sub_menu_key ] );
-
-
-			// BLOCK THE PAGE ACCESS
-			$this->block_page_access($menu_item, "sub", $dontdo, $itemunique);
-
-			error_log( 'Deleted Sub: '.print_r($menu_page." - ".$sub_menu_key." - ".$menu_item, true) );
+			//error_log( 'Deleted Sub: '.print_r($menu_page." - ".$sub_menu_key." - ".$menu_item, true) );
 
 		}
 
@@ -580,12 +549,12 @@ class AdminMenuRestriction {
 			$menu[ $top_menu_key ][1] = 'administrator';
 
 			// REMOVE THE PAGE
-			//if ( !remove_menu_page($menu_page) ) unset( $menu[ $top_menu_key ] );
+			if ( !remove_menu_page($menu_page) ) unset( $menu[ $top_menu_key ] );
 
 			// BLOCK THE PAGE ACCESS
-			$this->block_page_access($menu_page, "top");
+			//$this->block_page_access($menu_page, "top");
 
-			error_log( 'Deleted Top: '.print_r($menu_page, true) );
+			//error_log( 'Deleted Top: '.print_r($menu_page, true) );
 
 		}
 
@@ -719,13 +688,13 @@ class AdminMenuRestriction {
 									$allowed_tops[] = "profile.php";
 								}
 
-								error_log( 'Allowed Sub: '.print_r($menu_page." - ".$sub_menu_key." - ".$menu_item, true) );
-								error_log( 'Allowed Top: '.print_r($menu_page, true) );
+								//error_log( 'Allowed Sub: '.print_r($menu_page." - ".$sub_menu_key." - ".$menu_item, true) );
+								//error_log( 'Allowed Top: '.print_r($menu_page, true) );
 
 							}
 						}
 
-						//error_log( 'Allowed Subs: '.print_r($allowed_subs, true) );
+						////error_log( 'Allowed Subs: '.print_r($allowed_subs, true) );
 
 
 					} elseif ( $menu_type == "top_allow" ) { // TOP ALLOWING
@@ -738,7 +707,7 @@ class AdminMenuRestriction {
 								$allowed_tops[] = $menu_page;
 								$allowed_subs[] = $menu_page."0".$menu_page;
 
-								error_log( 'Allowed Top: '.print_r($menu_page, true) );
+								//error_log( 'Allowed Top: '.print_r($menu_page, true) );
 
 							}
 						}
@@ -832,5 +801,22 @@ class AdminMenuRestriction {
 
 
 }
+
+
+/*
+function test_admin_head() {
+	global $menu, $submenu;
+
+	if ( ! current_user_can('administrator') ) {
+
+		//echo '<pre>' . print_r( get_option( 'amr_admin_menu', array() );, true ) . '</pre>';
+		//echo '<pre>' . print_r( $submenu, true ) . '</pre>';
+		//echo '<h1>TOP MENU</h1><pre>' . print_r( $menu, true ) . '</pre>';
+
+	}
+
+}
+add_action('admin_head', 'test_admin_head');
+*/
 
 ?>

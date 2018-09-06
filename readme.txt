@@ -24,11 +24,15 @@ Minimizing the admin page hasn't been easier! The best and easiest plugin to res
 
 
 == Screenshots ==
-1. Select a role to edit access
-2. Choose the menu items that need to be shown
-3. Or, just choose the menu items that the selected role shouldn't have access
+1. Select a role to edit access.
+2. Choose the menu items that need to be shown.
+3. Or, just choose the menu items that the selected role shouldn't have access.
+4. Either way, admin menu is going to be like this for the selected role.
 
 == Changelog ==
+= 1.0.3 (2018-09-01 13:10 EET) =
+* Screenshots updated
+
 = 1.0.2 (2018-08-31 12:31 EET) =
 * Bug fixes
 

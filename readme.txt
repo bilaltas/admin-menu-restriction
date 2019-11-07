@@ -3,7 +3,7 @@ Contributors: bilaltas
 Tags: admin menu, restriction, admin menu editor, role based
 Donate link: https://paypal.me/bilaltas
 Requires at least: 4.0
-Tested up to: 4.9.8
+Tested up to: 5.3
 Stable tag: trunk
 License: MIT
 License URI: https://opensource.org/licenses/MIT
@@ -30,6 +30,9 @@ Minimizing the admin page hasn't been easier! The best and easiest plugin to res
 4. Either way, admin menu is going to be like this for the selected role.
 
 == Changelog ==
+= 1.0.4 (2019-11-07 13:19 EET) =
+* Tested on Wordpress 5.3
+
 = 1.0.3 (2018-09-01 13:10 EET) =
 * Screenshots updated
 

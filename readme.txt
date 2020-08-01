@@ -3,7 +3,7 @@ Contributors: bilaltas
 Tags: admin menu, restriction, admin menu editor, role based
 Donate link: https://paypal.me/bilaltas
 Requires at least: 4.0
-Tested up to: 5.3
+Tested up to: 5.5
 Stable tag: trunk
 License: MIT
 License URI: https://opensource.org/licenses/MIT
